@@ -10,33 +10,85 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAdminDashRouteImport } from './routes/_authenticated/admin-dash'
+import { Route as AuthenticatedDriverDashRouteImport } from './routes/_authenticated/driver-dash'
+import { Route as AuthenticatedMechanicDashRouteImport } from './routes/_authenticated/mechanic-dash'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminDashRoute = AuthenticatedAdminDashRouteImport.update({
+  id: '/admin-dash',
+  path: '/admin-dash',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDriverDashRoute = AuthenticatedDriverDashRouteImport.update({
+  id: '/driver-dash',
+  path: '/driver-dash',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMechanicDashRoute =
+  AuthenticatedMechanicDashRouteImport.update({
+    id: '/mechanic-dash',
+    path: '/mechanic-dash',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin-dash': typeof AuthenticatedAdminDashRoute
+  '/driver-dash': typeof AuthenticatedDriverDashRoute
+  '/mechanic-dash': typeof AuthenticatedMechanicDashRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin-dash': typeof AuthenticatedAdminDashRoute
+  '/driver-dash': typeof AuthenticatedDriverDashRoute
+  '/mechanic-dash': typeof AuthenticatedMechanicDashRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/admin-dash': typeof AuthenticatedAdminDashRoute
+  '/_authenticated/driver-dash': typeof AuthenticatedDriverDashRoute
+  '/_authenticated/mechanic-dash': typeof AuthenticatedMechanicDashRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/auth' | '/admin-dash' | '/driver-dash' | '/mechanic-dash'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/auth' | '/admin-dash' | '/driver-dash' | '/mechanic-dash'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/admin-dash'
+    | '/_authenticated/driver-dash'
+    | '/_authenticated/mechanic-dash'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +100,63 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin-dash': {
+      id: '/_authenticated/admin-dash'
+      path: '/admin-dash'
+      fullPath: '/admin-dash'
+      preLoaderRoute: typeof AuthenticatedAdminDashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/driver-dash': {
+      id: '/_authenticated/driver-dash'
+      path: '/driver-dash'
+      fullPath: '/driver-dash'
+      preLoaderRoute: typeof AuthenticatedDriverDashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mechanic-dash': {
+      id: '/_authenticated/mechanic-dash'
+      path: '/mechanic-dash'
+      fullPath: '/mechanic-dash'
+      preLoaderRoute: typeof AuthenticatedMechanicDashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminDashRoute: typeof AuthenticatedAdminDashRoute
+  AuthenticatedDriverDashRoute: typeof AuthenticatedDriverDashRoute
+  AuthenticatedMechanicDashRoute: typeof AuthenticatedMechanicDashRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminDashRoute: AuthenticatedAdminDashRoute,
+  AuthenticatedDriverDashRoute: AuthenticatedDriverDashRoute,
+  AuthenticatedMechanicDashRoute: AuthenticatedMechanicDashRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
