@@ -18,16 +18,19 @@ export type Database = {
         Row: {
           id: string
           setting_key: string
+          setting_text: string | null
           setting_value: number
         }
         Insert: {
           id?: string
           setting_key: string
-          setting_value: number
+          setting_text?: string | null
+          setting_value?: number
         }
         Update: {
           id?: string
           setting_key?: string
+          setting_text?: string | null
           setting_value?: number
         }
         Relationships: []
