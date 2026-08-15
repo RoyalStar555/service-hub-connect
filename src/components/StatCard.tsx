@@ -12,7 +12,7 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="panel p-5">
+    <div className="panel p-6">
       <div className="flex items-start justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {label}

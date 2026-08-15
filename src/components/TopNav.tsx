@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Globe, LogOut, ShieldCheck, Wrench } from "lucide-react";
+import { Globe, LogOut, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,20 +29,12 @@ export function TopNav() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link
           to={dashboardPathFor(profile?.role)}
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+          className="flex items-center transition-opacity hover:opacity-80"
         >
-          <span className="flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Wrench className="size-5" />
-          </span>
-          <span className="leading-tight">
-            <span className="block font-display text-base font-bold tracking-tight">
-              {t("appName")}
-            </span>
-            <span className="hidden text-[11px] uppercase tracking-[0.18em] text-muted-foreground sm:block">
-              {t("tagline")}
-            </span>
-          </span>
+          <Logo className="h-11" />
+          <span className="sr-only">{t("appName")}</span>
         </Link>
+
 
         <div className="flex items-center gap-2 sm:gap-3">
           <DropdownMenu>

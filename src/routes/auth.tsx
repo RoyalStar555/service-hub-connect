@@ -4,7 +4,9 @@ import { Loader2, ShieldCheck, Truck, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -107,15 +109,14 @@ function AuthPage() {
 
       <div className="relative grid w-full max-w-5xl items-center gap-12 lg:grid-cols-2">
         <section className="hidden lg:block">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-            B2B Fleet Network
-          </span>
-          <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05]">
-            {t("appName")}
-            <span className="mt-2 block text-2xl font-medium text-muted-foreground">
+          <Logo className="h-20" />
+          <h1 className="mt-8 font-display text-5xl font-semibold leading-[1.05]">
+            Roadside help,
+            <span className="mt-2 block text-2xl font-normal text-muted-foreground">
               {t("tagline")}
             </span>
           </h1>
+
           <ul className="mt-10 space-y-4 text-sm text-muted-foreground">
             {[
               { icon: Truck, text: "Dispatch breakdown jobs with exact GPS in seconds." },
@@ -123,7 +124,7 @@ function AuthPage() {
               { icon: ShieldCheck, text: "Wallet-based unlock fees, fully auditable by admins." },
             ].map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-raised text-primary">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="size-4" />
                 </span>
                 <span className="pt-1.5 leading-snug">{text}</span>
@@ -132,9 +133,11 @@ function AuthPage() {
           </ul>
         </section>
 
-        <section className="panel p-6 sm:p-8">
+        <section className="panel p-7 sm:p-10">
+          <Logo className="mx-auto mb-6 h-14 lg:hidden" />
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 bg-surface">
+            <TabsList className="grid w-full grid-cols-2 bg-secondary">
+
               <TabsTrigger value="login">{t("login")}</TabsTrigger>
               <TabsTrigger value="signup">{t("signup")}</TabsTrigger>
             </TabsList>
