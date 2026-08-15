@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Globe, LogOut, ShieldCheck, Wrench } from "lucide-react";
+import { Globe, LogOut, ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+
 import {
   DropdownMenu,
   DropdownMenuContent,

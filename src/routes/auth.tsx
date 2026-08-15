@@ -107,15 +107,14 @@ function AuthPage() {
 
       <div className="relative grid w-full max-w-5xl items-center gap-12 lg:grid-cols-2">
         <section className="hidden lg:block">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
-            B2B Fleet Network
-          </span>
-          <h1 className="mt-6 font-display text-5xl font-bold leading-[1.05]">
-            {t("appName")}
-            <span className="mt-2 block text-2xl font-medium text-muted-foreground">
+          <Logo className="h-20" />
+          <h1 className="mt-8 font-display text-5xl font-semibold leading-[1.05]">
+            Roadside help,
+            <span className="mt-2 block text-2xl font-normal text-muted-foreground">
               {t("tagline")}
             </span>
           </h1>
+
           <ul className="mt-10 space-y-4 text-sm text-muted-foreground">
             {[
               { icon: Truck, text: "Dispatch breakdown jobs with exact GPS in seconds." },
