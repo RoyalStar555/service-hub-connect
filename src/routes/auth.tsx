@@ -124,7 +124,7 @@ function AuthPage() {
               { icon: ShieldCheck, text: "Wallet-based unlock fees, fully auditable by admins." },
             ].map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-start gap-3">
-                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-surface-raised text-primary">
+                <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon className="size-4" />
                 </span>
                 <span className="pt-1.5 leading-snug">{text}</span>
@@ -133,9 +133,11 @@ function AuthPage() {
           </ul>
         </section>
 
-        <section className="panel p-6 sm:p-8">
+        <section className="panel p-7 sm:p-10">
+          <Logo className="mx-auto mb-6 h-14 lg:hidden" />
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 bg-surface">
+            <TabsList className="grid w-full grid-cols-2 bg-secondary">
+
               <TabsTrigger value="login">{t("login")}</TabsTrigger>
               <TabsTrigger value="signup">{t("signup")}</TabsTrigger>
             </TabsList>
