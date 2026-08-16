@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { dashboardPathFor, useAuth, type Role } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { verifyMasterKey } from "@/lib/master-key.functions";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
