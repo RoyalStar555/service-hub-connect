@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Activity, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Activity, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -15,8 +20,10 @@ import { RoleGate } from "@/components/RoleGate";
 import { RequestCard } from "@/components/RequestCard";
 import { StatCard } from "@/components/StatCard";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { updateMasterKey } from "@/lib/master-key.functions";
 import type { Profile } from "@/hooks/useAuth";
 import type { ServiceRequest } from "@/lib/service-requests";
+
 
 export const Route = createFileRoute("/_authenticated/admin-dash")({
   head: () => ({
