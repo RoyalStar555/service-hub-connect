@@ -52,6 +52,8 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<Role | "">("");
+  const [masterKey, setMasterKey] = useState("");
+
 
   useEffect(() => {
     if (!loading && user && profile) {
