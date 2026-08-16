@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
+
 import { Loader2, ShieldCheck, Truck, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +21,8 @@ import {
 } from "@/components/ui/select";
 import { dashboardPathFor, useAuth, type Role } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { verifyMasterKey } from "@/lib/master-key.functions";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -44,6 +48,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const verifyKey = useServerFn(verifyMasterKey);
+
   const { user, profile, loading } = useAuth();
 
   const [busy, setBusy] = useState(false);
@@ -52,6 +58,8 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState<Role | "">("");
+  const [masterKey, setMasterKey] = useState("");
+
 
   useEffect(() => {
     if (!loading && user && profile) {
@@ -74,7 +82,16 @@ function AuthPage() {
       return;
     }
     setBusy(true);
+    if (role === "admin") {
+      const { valid } = await verifyKey({ data: { key: masterKey } });
+      if (!valid) {
+        setBusy(false);
+        toast.error("Access Denied: Invalid Master Key");
+        return;
+      }
+    }
     const { data, error } = await supabase.auth.signUp({
+
       email,
       password,
       options: {
@@ -223,6 +240,23 @@ function AuthPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                {role === "admin" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="master-key">Admin Master Key</Label>
+                    <Input
+                      id="master-key"
+                      type="password"
+                      required
+                      value={masterKey}
+                      onChange={(e) => setMasterKey(e.target.value)}
+                      placeholder="Enter the admin master key"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Admin accounts require the organisation master key.
+                    </p>
+                  </div>
+                )}
+
                 <Button type="submit" disabled={busy} className="w-full font-semibold">
                   {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
                   {t("signup")}

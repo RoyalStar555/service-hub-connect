@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Activity, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Activity, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -15,8 +20,10 @@ import { RoleGate } from "@/components/RoleGate";
 import { RequestCard } from "@/components/RequestCard";
 import { StatCard } from "@/components/StatCard";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { updateMasterKey } from "@/lib/master-key.functions";
 import type { Profile } from "@/hooks/useAuth";
 import type { ServiceRequest } from "@/lib/service-requests";
+
 
 export const Route = createFileRoute("/_authenticated/admin-dash")({
   head: () => ({
@@ -81,6 +88,37 @@ function AdminDash() {
 
   const revenue = requests.reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
 
+  const rotateKey = useServerFn(updateMasterKey);
+  const [currentKey, setCurrentKey] = useState("");
+  const [newKey, setNewKey] = useState("");
+  const [confirmKey, setConfirmKey] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+
+  const handleKeyUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newKey !== confirmKey) {
+      toast.error("New keys do not match");
+      return;
+    }
+    setKeyBusy(true);
+    try {
+      const res = await rotateKey({ data: { currentKey, newKey } });
+      if (res.ok) {
+        toast.success(res.message);
+        setCurrentKey("");
+        setNewKey("");
+        setConfirmKey("");
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Could not update the master key");
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <h1 className="font-display text-3xl font-bold">{t("adminDash")}</h1>
@@ -92,6 +130,63 @@ function AdminDash() {
         <StatCard icon={Wallet} label="Unlock revenue" value={`₹${revenue}`} />
         <StatCard icon={ShieldCheck} label={t("unlockFee")} value={`₹${unlockFee}`} />
       </div>
+
+      <section className="panel mt-8 p-6 sm:p-8">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <KeyRound className="size-5" />
+          </span>
+          <div>
+            <h2 className="font-display text-lg font-semibold">Security Settings</h2>
+            <p className="text-sm text-muted-foreground">
+              Rotate the admin master key required to create new admin accounts.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleKeyUpdate} className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label htmlFor="current-key">Current Key</Label>
+            <Input
+              id="current-key"
+              type="password"
+              required
+              value={currentKey}
+              onChange={(e) => setCurrentKey(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-key">New Key</Label>
+            <Input
+              id="new-key"
+              type="password"
+              required
+              minLength={6}
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirm-key">Confirm New Key</Label>
+            <Input
+              id="confirm-key"
+              type="password"
+              required
+              minLength={6}
+              value={confirmKey}
+              onChange={(e) => setConfirmKey(e.target.value)}
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <Button type="submit" disabled={keyBusy} className="font-semibold">
+              {keyBusy && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Update Key
+            </Button>
+          </div>
+        </form>
+      </section>
+
+
 
       <section className="panel mt-8 overflow-x-auto">
         <h2 className="border-b border-border px-6 py-4 font-display text-lg font-semibold">
