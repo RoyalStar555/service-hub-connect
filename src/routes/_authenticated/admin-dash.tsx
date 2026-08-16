@@ -88,6 +88,37 @@ function AdminDash() {
 
   const revenue = requests.reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
 
+  const rotateKey = useServerFn(updateMasterKey);
+  const [currentKey, setCurrentKey] = useState("");
+  const [newKey, setNewKey] = useState("");
+  const [confirmKey, setConfirmKey] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+
+  const handleKeyUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newKey !== confirmKey) {
+      toast.error("New keys do not match");
+      return;
+    }
+    setKeyBusy(true);
+    try {
+      const res = await rotateKey({ data: { currentKey, newKey } });
+      if (res.ok) {
+        toast.success(res.message);
+        setCurrentKey("");
+        setNewKey("");
+        setConfirmKey("");
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Could not update the master key");
+    } finally {
+      setKeyBusy(false);
+    }
+  };
+
+
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <h1 className="font-display text-3xl font-bold">{t("adminDash")}</h1>
