@@ -26,11 +26,14 @@ export const updateMasterKey = createServerFn({ method: "POST" })
     newKey: String(data?.newKey ?? ""),
   }))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
-      _user_id: context.userId,
-      _role: "admin",
-    });
-    if (!isAdmin) return { ok: false as const, message: "Forbidden" };
+    const { data: adminRow } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!adminRow) return { ok: false as const, message: "Forbidden" };
+
 
     const newKey = data.newKey.trim();
     if (newKey.length < 6) {
