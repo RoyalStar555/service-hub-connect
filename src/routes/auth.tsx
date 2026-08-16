@@ -76,7 +76,16 @@ function AuthPage() {
       return;
     }
     setBusy(true);
+    if (role === "admin") {
+      const { valid } = await verifyKey({ data: { key: masterKey } });
+      if (!valid) {
+        setBusy(false);
+        toast.error("Access Denied: Invalid Master Key");
+        return;
+      }
+    }
     const { data, error } = await supabase.auth.signUp({
+
       email,
       password,
       options: {
