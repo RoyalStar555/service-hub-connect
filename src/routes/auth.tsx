@@ -240,6 +240,23 @@ function AuthPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                {role === "admin" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="master-key">Admin Master Key</Label>
+                    <Input
+                      id="master-key"
+                      type="password"
+                      required
+                      value={masterKey}
+                      onChange={(e) => setMasterKey(e.target.value)}
+                      placeholder="Enter the admin master key"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Admin accounts require the organisation master key.
+                    </p>
+                  </div>
+                )}
+
                 <Button type="submit" disabled={busy} className="w-full font-semibold">
                   {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
                   {t("signup")}
