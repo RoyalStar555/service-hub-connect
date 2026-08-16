@@ -46,6 +46,8 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const verifyKey = useServerFn(verifyMasterKey);
+
   const { user, profile, loading } = useAuth();
 
   const [busy, setBusy] = useState(false);
