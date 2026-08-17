@@ -1,29 +1,40 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { CheckCircle2, Radio, Unlock, Wallet } from "lucide-react";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { CheckCircle2, Loader2, MapPin, Radio, Unlock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { RoleGate } from "@/components/RoleGate";
-import { RequestCard } from "@/components/RequestCard";
 import { StatCard } from "@/components/StatCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { ServiceRequest } from "@/lib/service-requests";
 
+const MechanicMap = lazy(() => import("@/components/MechanicMap"));
+
+const DEFAULT_CENTER = { lat: 19.076, lng: 72.8777 };
+
 export const Route = createFileRoute("/_authenticated/mechanic-dash")({
   head: () => ({
     meta: [
-      { title: "Mechanic Dashboard — Service Hub" },
+      { title: "Mechanic Radar — Service Hub" },
       {
         name: "description",
         content:
-          "Browse the live breakdown feed, unlock jobs with your wallet and complete roadside repairs for fleet drivers.",
+          "Track masked breakdown zones on a live radar map, unlock exact GPS with your wallet and dispatch to fleet drivers.",
       },
-      { property: "og:title", content: "Mechanic Dashboard — Service Hub" },
+      { property: "og:title", content: "Mechanic Radar — Service Hub" },
       {
         property: "og:description",
-        content: "Live breakdown feed and job management for verified roadside mechanics.",
+        content: "Live breakdown radar and wallet-based job unlocking for verified roadside mechanics.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -41,6 +52,9 @@ function MechanicDash() {
   const { user, profile, refreshProfile } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [unlockFee, setUnlockFee] = useState(50);
+  const [selected, setSelected] = useState<ServiceRequest | null>(null);
+  const [active, setActive] = useState<ServiceRequest | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     const loadFee = async () => {
@@ -49,7 +63,7 @@ function MechanicDash() {
         .select("setting_value")
         .eq("setting_key", "unlock_fee")
         .maybeSingle();
-      if (data) setUnlockFee(Number(data.setting_value));
+      if (data) setUnlockFee(Number(data.setting_value) || 50);
     };
     void loadFee();
   }, []);
@@ -66,7 +80,7 @@ function MechanicDash() {
     void load();
 
     const channel = supabase
-      .channel("mechanic-feed")
+      .channel("mechanic-radar")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "service_requests" },
@@ -79,27 +93,55 @@ function MechanicDash() {
     };
   }, [user]);
 
-  const accept = async (request: ServiceRequest) => {
-    if (!user || !profile) return;
+  const pending = useMemo(
+    () => requests.filter((r) => r.status === "pending" && r.exact_lat != null),
+    [requests],
+  );
+  const mine = useMemo(
+    () => requests.filter((r) => r.mechanic_id === user?.id),
+    [requests, user?.id],
+  );
+
+  const center = pending[0]?.exact_lat
+    ? { lat: pending[0].exact_lat, lng: pending[0].exact_lng as number }
+    : (mine[0]?.exact_lat
+        ? { lat: mine[0].exact_lat, lng: mine[0].exact_lng as number }
+        : DEFAULT_CENTER);
+
+  const unlock = async () => {
+    if (!selected || !user || !profile) return;
     if (profile.wallet_balance < unlockFee) {
       toast.error("Not enough wallet balance to unlock this job.");
       return;
     }
-    const { error } = await supabase
-      .from("service_requests")
-      .update({ mechanic_id: user.id, status: "accepted", fee_paid: unlockFee })
-      .eq("id", request.id)
-      .eq("status", "pending");
-    if (error) {
-      toast.error(error.message);
-      return;
+    setBusy(true);
+    try {
+      const { error: walletError } = await supabase
+        .from("profiles")
+        .update({ wallet_balance: profile.wallet_balance - unlockFee })
+        .eq("id", user.id);
+      if (walletError) throw walletError;
+
+      const { data, error } = await supabase
+        .from("service_requests")
+        .update({ status: "accepted", mechanic_id: user.id, fee_paid: unlockFee })
+        .eq("id", selected.id)
+        .eq("status", "pending")
+        .select("*")
+        .single();
+      if (error) throw error;
+
+      const updated = data as ServiceRequest;
+      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setActive(updated);
+      setSelected(null);
+      await refreshProfile();
+      toast.success("Job unlocked. Exact GPS revealed.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not unlock this job.");
+    } finally {
+      setBusy(false);
     }
-    await supabase
-      .from("profiles")
-      .update({ wallet_balance: profile.wallet_balance - unlockFee })
-      .eq("id", user.id);
-    await refreshProfile();
-    toast.success("Job unlocked. Driver contact details revealed.");
   };
 
   const complete = async (request: ServiceRequest) => {
@@ -111,12 +153,11 @@ function MechanicDash() {
     else toast.success("Job marked completed.");
   };
 
-  const pending = requests.filter((r) => r.status === "pending");
-  const mine = requests.filter((r) => r.mechanic_id === user?.id);
+  const detail = active ?? mine[0] ?? null;
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="font-display text-3xl font-bold">{t("mechanicDash")}</h1>
+    <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <h1 className="font-display text-3xl font-bold text-foreground">{t("mechanicDash")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -125,40 +166,115 @@ function MechanicDash() {
         <StatCard icon={CheckCircle2} label={t("jobs")} value={mine.length} />
       </div>
 
-      <section className="mt-8 space-y-4">
-        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
-          <Radio className="size-4 animate-pulse text-primary" />
-          {t("liveFeed")}
-        </h2>
-        {pending.length === 0 ? (
-          <p className="panel p-6 text-sm text-muted-foreground">{t("noRequests")}</p>
-        ) : (
-          pending.map((r) => (
-            <RequestCard key={r.id} request={r}>
-              <Button size="sm" className="font-semibold" onClick={() => accept(r)}>
-                {t("accept")} · ₹{unlockFee}
-              </Button>
-            </RequestCard>
-          ))
-        )}
-      </section>
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_minmax(0,360px)]">
+        <section className="overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-md">
+          <div className="flex items-center gap-2 px-4 py-3">
+            <Radio className="size-4 animate-pulse text-primary" />
+            <h2 className="font-display text-lg font-semibold">{t("liveFeed")}</h2>
+            <span className="ml-auto text-xs text-muted-foreground">
+              {pending.length} {t("pending").toLowerCase()}
+            </span>
+          </div>
+          <div className="h-[480px] overflow-hidden rounded-2xl">
+            <ClientOnly
+              fallback={
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                  <Loader2 className="mr-2 size-4 animate-spin" /> Loading map…
+                </div>
+              }
+            >
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                    <Loader2 className="mr-2 size-4 animate-spin" /> Loading map…
+                  </div>
+                }
+              >
+                <MechanicMap
+                  center={center}
+                  pending={pending}
+                  unlocked={mine.filter((r) => r.status !== "completed")}
+                  onSelect={(r) => (r.status === "pending" ? setSelected(r) : setActive(r))}
+                />
+              </Suspense>
+            </ClientOnly>
+          </div>
+        </section>
 
-      <section className="mt-10 space-y-4">
-        <h2 className="font-display text-lg font-semibold">{t("jobs")}</h2>
-        {mine.length === 0 ? (
-          <p className="panel p-6 text-sm text-muted-foreground">{t("noRequests")}</p>
-        ) : (
-          mine.map((r) => (
-            <RequestCard key={r.id} request={r}>
-              {r.status === "accepted" && (
-                <Button size="sm" variant="outline" onClick={() => complete(r)}>
+        <aside className="h-fit rounded-2xl border border-border bg-card p-6 shadow-md">
+          <h2 className="font-display text-xl font-semibold">{t("jobs")}</h2>
+          {!detail ? (
+            <p className="mt-3 text-sm text-muted-foreground">{t("noRequests")}</p>
+          ) : (
+            <div className="mt-4 space-y-3 text-sm">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {t("vehicleType")}
+                </p>
+                <p className="font-medium text-foreground">{detail.vehicle_type}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {t("issueType")}
+                </p>
+                <p className="font-medium text-foreground">{detail.issue_type}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  GPS
+                </p>
+                <p className="flex items-center gap-1.5 font-medium text-foreground">
+                  <MapPin className="size-3.5 text-primary" />
+                  {detail.exact_lat != null && detail.exact_lng != null
+                    ? `${detail.exact_lat.toFixed(5)}, ${detail.exact_lng.toFixed(5)}`
+                    : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  {t("unlockFee")}
+                </p>
+                <p className="font-medium text-foreground">₹{detail.fee_paid}</p>
+              </div>
+              <a
+                className="inline-block text-xs font-semibold text-primary underline"
+                href={`https://www.google.com/maps?q=${detail.exact_lat},${detail.exact_lng}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Navigate
+              </a>
+              {detail.status === "accepted" && (
+                <Button size="sm" className="w-full font-semibold" onClick={() => complete(detail)}>
                   {t("complete")}
                 </Button>
               )}
-            </RequestCard>
-          ))
-        )}
-      </section>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {selected?.vehicle_type} {t("requests")}
+            </DialogTitle>
+            <DialogDescription>
+              {selected?.vehicle_type} Breakdown. Pay ₹{unlockFee} from wallet to unlock exact GPS.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelected(null)} disabled={busy}>
+              Cancel
+            </Button>
+            <Button className="font-semibold" onClick={unlock} disabled={busy}>
+              {busy && <Loader2 className="mr-2 size-4 animate-spin" />}
+              {t("accept")} · ₹{unlockFee}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
