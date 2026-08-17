@@ -168,12 +168,30 @@ function DriverDash() {
     }
     setBusy(true);
     try {
+      let mediaUrl: string | null = null;
+      if (file) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("media")
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage
+          .from("media")
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+        mediaUrl = signed?.signedUrl ?? path;
+      }
+
       const { data, error } = await supabase
         .from("service_requests")
         .insert({
           driver_id: user.id,
           vehicle_type: vehicleType,
           issue_type: issueType,
+          vehicle_model: vehicleModel || null,
+          customer_note: customerNote || null,
+          breakdown_address: address,
+          media_url: mediaUrl,
           exact_lat: coords?.lat ?? null,
           exact_lng: coords?.lng ?? null,
           status: "pending",
@@ -196,6 +214,10 @@ function DriverDash() {
     setActiveId(null);
     setVehicleType("");
     setIssueType("");
+    setVehicleModel("");
+    setCustomerNote("");
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const active = requests.filter((r) => r.status !== "completed").length;
