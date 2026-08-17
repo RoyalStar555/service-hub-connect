@@ -67,7 +67,9 @@ export type Database = {
       }
       service_requests: {
         Row: {
+          breakdown_address: string | null
           created_at: string
+          customer_note: string | null
           driver_id: string
           exact_lat: number | null
           exact_lng: number | null
@@ -75,11 +77,15 @@ export type Database = {
           id: string
           issue_type: string
           mechanic_id: string | null
+          media_url: string | null
           status: string
+          vehicle_model: string | null
           vehicle_type: string
         }
         Insert: {
+          breakdown_address?: string | null
           created_at?: string
+          customer_note?: string | null
           driver_id: string
           exact_lat?: number | null
           exact_lng?: number | null
@@ -87,11 +93,15 @@ export type Database = {
           id?: string
           issue_type: string
           mechanic_id?: string | null
+          media_url?: string | null
           status?: string
+          vehicle_model?: string | null
           vehicle_type: string
         }
         Update: {
+          breakdown_address?: string | null
           created_at?: string
+          customer_note?: string | null
           driver_id?: string
           exact_lat?: number | null
           exact_lng?: number | null
@@ -99,7 +109,9 @@ export type Database = {
           id?: string
           issue_type?: string
           mechanic_id?: string | null
+          media_url?: string | null
           status?: string
+          vehicle_model?: string | null
           vehicle_type?: string
         }
         Relationships: []
