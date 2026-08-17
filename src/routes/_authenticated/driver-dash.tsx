@@ -1,10 +1,12 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, MapPin, Truck, Wallet, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -63,10 +65,16 @@ function DriverDash() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [vehicleType, setVehicleType] = useState("");
   const [issueType, setIssueType] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [customerNote, setCustomerNote] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [address, setAddress] = useState<string | null>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<Phase>("form");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -79,6 +87,29 @@ function DriverDash() {
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }, []);
+
+  useEffect(() => {
+    if (!coords) return;
+    let cancelled = false;
+    setAddressLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`,
+          { headers: { Accept: "application/json" } },
+        );
+        const json = (await res.json()) as { display_name?: string };
+        if (!cancelled && json.display_name) setAddress(json.display_name);
+      } catch {
+        if (!cancelled) setAddress(null);
+      } finally {
+        if (!cancelled) setAddressLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [coords]);
 
   useEffect(() => {
     if (!user) return;
@@ -137,12 +168,30 @@ function DriverDash() {
     }
     setBusy(true);
     try {
+      let mediaUrl: string | null = null;
+      if (file) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from("media")
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) throw upErr;
+        const { data: signed } = await supabase.storage
+          .from("media")
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+        mediaUrl = signed?.signedUrl ?? path;
+      }
+
       const { data, error } = await supabase
         .from("service_requests")
         .insert({
           driver_id: user.id,
           vehicle_type: vehicleType,
           issue_type: issueType,
+          vehicle_model: vehicleModel || null,
+          customer_note: customerNote || null,
+          breakdown_address: address,
+          media_url: mediaUrl,
           exact_lat: coords?.lat ?? null,
           exact_lng: coords?.lng ?? null,
           status: "pending",
@@ -165,6 +214,10 @@ function DriverDash() {
     setActiveId(null);
     setVehicleType("");
     setIssueType("");
+    setVehicleModel("");
+    setCustomerNote("");
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const active = requests.filter((r) => r.status !== "completed").length;

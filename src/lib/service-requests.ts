@@ -8,6 +8,10 @@ export type ServiceRequest = {
   exact_lng: number | null;
   status: string;
   fee_paid: number;
+  breakdown_address?: string | null;
+  vehicle_model?: string | null;
+  customer_note?: string | null;
+  media_url?: string | null;
   created_at: string;
 };
 
