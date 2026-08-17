@@ -65,10 +65,16 @@ function DriverDash() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [vehicleType, setVehicleType] = useState("");
   const [issueType, setIssueType] = useState("");
+  const [vehicleModel, setVehicleModel] = useState("");
+  const [customerNote, setCustomerNote] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [address, setAddress] = useState<string | null>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<Phase>("form");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -81,6 +87,29 @@ function DriverDash() {
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }, []);
+
+  useEffect(() => {
+    if (!coords) return;
+    let cancelled = false;
+    setAddressLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}`,
+          { headers: { Accept: "application/json" } },
+        );
+        const json = (await res.json()) as { display_name?: string };
+        if (!cancelled && json.display_name) setAddress(json.display_name);
+      } catch {
+        if (!cancelled) setAddress(null);
+      } finally {
+        if (!cancelled) setAddressLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [coords]);
 
   useEffect(() => {
     if (!user) return;
