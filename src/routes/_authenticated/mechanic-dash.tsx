@@ -184,10 +184,19 @@ function MechanicDash() {
       <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Wallet} label={t("balance")} value={`₹${profile?.wallet_balance ?? 0}`} />
+        <div className="space-y-3">
+          <StatCard icon={Wallet} label={t("balance")} value={`₹${profile?.wallet_balance ?? 0}`} />
+          <Button
+            className="w-full font-semibold"
+            onClick={() => setTopUpOpen(true)}
+          >
+            <Plus className="mr-2 size-4" /> Add Funds
+          </Button>
+        </div>
         <StatCard icon={Unlock} label={t("unlockFee")} value={`₹${unlockFee}`} hint="per job" />
         <StatCard icon={CheckCircle2} label={t("jobs")} value={mine.length} />
       </div>
+
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_minmax(0,360px)]">
         <section className="overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-md">
