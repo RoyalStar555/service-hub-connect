@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Activity, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Activity, BadgeIndianRupee, Image as ImageIcon, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RoleGate } from "@/components/RoleGate";
-import { RequestCard } from "@/components/RequestCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { StatCard } from "@/components/StatCard";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { updateMasterKey } from "@/lib/master-key.functions";
@@ -87,6 +93,27 @@ function AdminDash() {
   }, []);
 
   const revenue = requests.reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
+  const treasury = requests
+    .filter((r) => r.status === "accepted")
+    .reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
+
+  const [media, setMedia] = useState<ServiceRequest | null>(null);
+  const [mediaSrc, setMediaSrc] = useState<string | null>(null);
+
+  const openMedia = async (request: ServiceRequest) => {
+    setMedia(request);
+    setMediaSrc(null);
+    const url = request.media_url;
+    if (!url) return;
+    const match = url.match(/\/media\/(.+)$/);
+    if (match) {
+      const { data } = await supabase.storage.from("media").createSignedUrl(match[1] ?? "", 3600);
+      setMediaSrc(data?.signedUrl ?? url);
+    } else {
+      setMediaSrc(url);
+    }
+  };
+
 
   const rotateKey = useServerFn(updateMasterKey);
   const [currentKey, setCurrentKey] = useState("");
@@ -129,7 +156,14 @@ function AdminDash() {
         <StatCard icon={Activity} label={t("requests")} value={requests.length} />
         <StatCard icon={Wallet} label="Unlock revenue" value={`₹${revenue}`} />
         <StatCard icon={ShieldCheck} label={t("unlockFee")} value={`₹${unlockFee}`} />
+        <StatCard
+          icon={BadgeIndianRupee}
+          label="Platform Treasury"
+          value={`₹${treasury}`}
+          hint="Total Revenue Collected"
+        />
       </div>
+
 
       <section className="panel mt-8 p-6 sm:p-8">
         <div className="flex items-center gap-3">
@@ -226,14 +260,86 @@ function AdminDash() {
         </Table>
       </section>
 
-      <section className="mt-10 space-y-4">
-        <h2 className="font-display text-lg font-semibold">{t("liveFeed")}</h2>
+      <section className="panel mt-10 overflow-x-auto">
+        <h2 className="border-b border-border px-6 py-4 font-display text-lg font-semibold">
+          {t("liveFeed")}
+        </h2>
         {requests.length === 0 ? (
-          <p className="panel p-6 text-sm text-muted-foreground">{t("noRequests")}</p>
+          <p className="p-6 text-sm text-muted-foreground">{t("noRequests")}</p>
         ) : (
-          requests.map((r) => <RequestCard key={r.id} request={r} />)
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Breakdown Address</TableHead>
+                <TableHead>Vehicle Model</TableHead>
+                <TableHead className="text-right">Fee Collected</TableHead>
+                <TableHead className="text-right">Media</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-widest">
+                      {r.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="max-w-[260px] truncate">
+                    {r.breakdown_address ?? "—"}
+                  </TableCell>
+                  <TableCell>{r.vehicle_model ?? r.vehicle_type}</TableCell>
+                  <TableCell className="text-right tabular-nums">₹{r.fee_paid}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void openMedia(r)}
+                      disabled={!r.media_url && !r.customer_note}
+                    >
+                      <ImageIcon className="mr-1.5 size-3.5" /> View Media
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </section>
+
+      <Dialog open={!!media} onOpenChange={(open) => !open && setMedia(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {media?.vehicle_model ?? media?.vehicle_type} · {media?.issue_type}
+            </DialogTitle>
+            <DialogDescription>{media?.breakdown_address ?? "No address recorded"}</DialogDescription>
+          </DialogHeader>
+          {media?.media_url ? (
+            mediaSrc ? (
+              <img
+                src={mediaSrc}
+                alt={`Breakdown photo for ${media.issue_type}`}
+                className="w-full rounded-2xl border border-border object-cover"
+              />
+            ) : (
+              <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="mr-2 size-4 animate-spin" /> Loading image…
+              </div>
+            )
+          ) : (
+            <p className="text-sm text-muted-foreground">No photo uploaded.</p>
+          )}
+          <p className="text-sm text-foreground">
+            {media?.customer_note ? media.customer_note : "No customer note."}
+          </p>
+        </DialogContent>
+      </Dialog>
+
     </main>
   );
 }

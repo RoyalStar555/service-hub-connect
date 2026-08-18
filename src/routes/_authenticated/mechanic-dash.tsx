@@ -1,6 +1,6 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, MapPin, Radio, Unlock, Wallet } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, MapPin, Plus, Radio, Unlock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,29 @@ function MechanicDash() {
   const [selected, setSelected] = useState<ServiceRequest | null>(null);
   const [active, setActive] = useState<ServiceRequest | null>(null);
   const [busy, setBusy] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpBusy, setTopUpBusy] = useState(false);
+
+  const addFunds = async () => {
+    if (!user || !profile) return;
+    setTopUpBusy(true);
+    try {
+      await new Promise((r) => setTimeout(r, 900));
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wallet_balance: profile.wallet_balance + 500 })
+        .eq("id", user.id);
+      if (error) throw error;
+      await refreshProfile();
+      setTopUpOpen(false);
+      toast.success("Payment successful — ₹500 added to your wallet.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Payment failed. Try again.");
+    } finally {
+      setTopUpBusy(false);
+    }
+  };
+
 
   useEffect(() => {
     const loadFee = async () => {
@@ -161,10 +184,19 @@ function MechanicDash() {
       <p className="mt-1 text-sm text-muted-foreground">{t("tagline")}</p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <StatCard icon={Wallet} label={t("balance")} value={`₹${profile?.wallet_balance ?? 0}`} />
+        <div className="space-y-3">
+          <StatCard icon={Wallet} label={t("balance")} value={`₹${profile?.wallet_balance ?? 0}`} />
+          <Button
+            className="w-full font-semibold"
+            onClick={() => setTopUpOpen(true)}
+          >
+            <Plus className="mr-2 size-4" /> Add Funds
+          </Button>
+        </div>
         <StatCard icon={Unlock} label={t("unlockFee")} value={`₹${unlockFee}`} hint="per job" />
         <StatCard icon={CheckCircle2} label={t("jobs")} value={mine.length} />
       </div>
+
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_minmax(0,360px)]">
         <section className="overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-md">
@@ -275,6 +307,34 @@ function MechanicDash() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={topUpOpen} onOpenChange={(open) => !topUpBusy && setTopUpOpen(open)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Add Funds</DialogTitle>
+            <DialogDescription>
+              Simulated payment gateway. Top up your wallet to unlock more jobs.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-2xl border border-border bg-muted/40 p-6 text-center">
+            <CreditCard className="mx-auto size-6 text-primary" />
+            <p className="mt-3 font-display text-3xl font-bold tabular-nums">₹500</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Test mode · no real card is charged
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTopUpOpen(false)} disabled={topUpBusy}>
+              Cancel
+            </Button>
+            <Button className="font-semibold" onClick={addFunds} disabled={topUpBusy}>
+              {topUpBusy && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Pay ₹500
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
+
   );
 }
