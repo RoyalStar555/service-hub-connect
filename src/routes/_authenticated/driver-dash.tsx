@@ -366,14 +366,22 @@ function DriverDash() {
 
         <div className="space-y-6">
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-md">
-            <div className="flex items-center gap-2 px-6 py-4">
-              <MapPin className="size-4 text-primary" />
-              <span className="text-sm font-medium">
-                {coords
-                  ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`
-                  : "Waiting for GPS..."}
-              </span>
+            <div className="flex items-start gap-2 px-6 py-4">
+              <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <span className="block text-sm font-medium">
+                  {coords
+                    ? `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`
+                    : "Waiting for GPS..."}
+                </span>
+                {(address || addressLoading) && (
+                  <span className="block text-xs text-muted-foreground">
+                    {addressLoading ? "Finding your address..." : address}
+                  </span>
+                )}
+              </div>
             </div>
+
             <div className="h-80 w-full overflow-hidden rounded-2xl">
               {coords ? (
                 <ClientOnly
