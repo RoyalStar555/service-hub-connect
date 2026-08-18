@@ -101,7 +101,7 @@ function AdminDash() {
     if (!url) return;
     const match = url.match(/\/media\/(.+)$/);
     if (match) {
-      const { data } = await supabase.storage.from("media").createSignedUrl(match[1], 3600);
+      const { data } = await supabase.storage.from("media").createSignedUrl(match[1] ?? "", 3600);
       setMediaSrc(data?.signedUrl ?? url);
     } else {
       setMediaSrc(url);
