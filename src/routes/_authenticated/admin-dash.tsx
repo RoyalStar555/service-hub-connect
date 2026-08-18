@@ -17,7 +17,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RoleGate } from "@/components/RoleGate";
-import { RequestCard } from "@/components/RequestCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { StatCard } from "@/components/StatCard";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { updateMasterKey } from "@/lib/master-key.functions";
