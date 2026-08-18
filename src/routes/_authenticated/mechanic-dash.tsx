@@ -55,6 +55,29 @@ function MechanicDash() {
   const [selected, setSelected] = useState<ServiceRequest | null>(null);
   const [active, setActive] = useState<ServiceRequest | null>(null);
   const [busy, setBusy] = useState(false);
+  const [topUpOpen, setTopUpOpen] = useState(false);
+  const [topUpBusy, setTopUpBusy] = useState(false);
+
+  const addFunds = async () => {
+    if (!user || !profile) return;
+    setTopUpBusy(true);
+    try {
+      await new Promise((r) => setTimeout(r, 900));
+      const { error } = await supabase
+        .from("profiles")
+        .update({ wallet_balance: profile.wallet_balance + 500 })
+        .eq("id", user.id);
+      if (error) throw error;
+      await refreshProfile();
+      setTopUpOpen(false);
+      toast.success("Payment successful — ₹500 added to your wallet.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Payment failed. Try again.");
+    } finally {
+      setTopUpBusy(false);
+    }
+  };
+
 
   useEffect(() => {
     const loadFee = async () => {
