@@ -87,6 +87,27 @@ function AdminDash() {
   }, []);
 
   const revenue = requests.reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
+  const treasury = requests
+    .filter((r) => r.status === "accepted")
+    .reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
+
+  const [media, setMedia] = useState<ServiceRequest | null>(null);
+  const [mediaSrc, setMediaSrc] = useState<string | null>(null);
+
+  const openMedia = async (request: ServiceRequest) => {
+    setMedia(request);
+    setMediaSrc(null);
+    const url = request.media_url;
+    if (!url) return;
+    const match = url.match(/\/media\/(.+)$/);
+    if (match) {
+      const { data } = await supabase.storage.from("media").createSignedUrl(match[1], 3600);
+      setMediaSrc(data?.signedUrl ?? url);
+    } else {
+      setMediaSrc(url);
+    }
+  };
+
 
   const rotateKey = useServerFn(updateMasterKey);
   const [currentKey, setCurrentKey] = useState("");
