@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Activity, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Activity, BadgeIndianRupee, Image as ImageIcon, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
