@@ -156,7 +156,14 @@ function AdminDash() {
         <StatCard icon={Activity} label={t("requests")} value={requests.length} />
         <StatCard icon={Wallet} label="Unlock revenue" value={`₹${revenue}`} />
         <StatCard icon={ShieldCheck} label={t("unlockFee")} value={`₹${unlockFee}`} />
+        <StatCard
+          icon={BadgeIndianRupee}
+          label="Platform Treasury"
+          value={`₹${treasury}`}
+          hint="Total Revenue Collected"
+        />
       </div>
+
 
       <section className="panel mt-8 p-6 sm:p-8">
         <div className="flex items-center gap-3">
