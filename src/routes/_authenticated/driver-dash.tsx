@@ -279,6 +279,51 @@ function DriverDash() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="vehicle-model">Vehicle Model</Label>
+                <Input
+                  id="vehicle-model"
+                  className="rounded-xl"
+                  placeholder="e.g. Tata Signa 4825.TK"
+                  value={vehicleModel}
+                  onChange={(e) => setVehicleModel(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="customer-note">Describe the Problem</Label>
+                <Textarea
+                  id="customer-note"
+                  className="min-h-24 rounded-xl"
+                  placeholder="Tell the mechanic what happened..."
+                  value={customerNote}
+                  onChange={(e) => setCustomerNote(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="media">Photo of the issue (optional)</Label>
+                <Input
+                  id="media"
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="rounded-xl"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/40 p-3">
+                <div className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 size-4 shrink-0 text-primary" />
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {addressLoading
+                      ? "Finding your address..."
+                      : (address ?? "Waiting for GPS location...")}
+                  </p>
+                </div>
+              </div>
+
               <Button
                 onClick={broadcast}
                 disabled={busy}
