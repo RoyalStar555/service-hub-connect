@@ -307,6 +307,34 @@ function MechanicDash() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={topUpOpen} onOpenChange={(open) => !topUpBusy && setTopUpOpen(open)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Add Funds</DialogTitle>
+            <DialogDescription>
+              Simulated payment gateway. Top up your wallet to unlock more jobs.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-2xl border border-border bg-muted/40 p-6 text-center">
+            <CreditCard className="mx-auto size-6 text-primary" />
+            <p className="mt-3 font-display text-3xl font-bold tabular-nums">₹500</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Test mode · no real card is charged
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTopUpOpen(false)} disabled={topUpBusy}>
+              Cancel
+            </Button>
+            <Button className="font-semibold" onClick={addFunds} disabled={topUpBusy}>
+              {topUpBusy && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Pay ₹500
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
+
   );
 }
