@@ -1,6 +1,6 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Loader2, MapPin, Radio, Unlock, Wallet } from "lucide-react";
+import { CheckCircle2, CreditCard, Loader2, MapPin, Plus, Radio, Unlock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
