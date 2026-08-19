@@ -145,19 +145,20 @@ export type Database = {
       }
     }
     Views: {
-      mechanic_leaderboard: {
-        Row: {
-          avg_rating: number | null
-          completed_jobs: number | null
-          full_name: string | null
-          id: string | null
-          is_premium_badge: boolean | null
-          score: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      get_mechanic_leaderboard: {
+        Args: never
+        Returns: {
+          avg_rating: number
+          completed_jobs: number
+          full_name: string
+          id: string
+          is_premium_badge: boolean
+          score: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
