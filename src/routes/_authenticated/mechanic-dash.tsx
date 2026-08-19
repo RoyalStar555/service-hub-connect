@@ -1,6 +1,6 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, CreditCard, Loader2, MapPin, Plus, Radio, Unlock, Wallet } from "lucide-react";
+import { Award, CheckCircle2, CreditCard, Loader2, MapPin, Plus, Radio, Star, Trophy, Unlock, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,15 @@ export const Route = createFileRoute("/_authenticated/mechanic-dash")({
   ),
 });
 
+type LeaderRow = {
+  id: string;
+  full_name: string | null;
+  is_premium_badge: boolean;
+  completed_jobs: number;
+  avg_rating: number;
+  score: number;
+};
+
 function MechanicDash() {
   const { t } = useLanguage();
   const { user, profile, refreshProfile } = useAuth();
@@ -57,6 +66,15 @@ function MechanicDash() {
   const [busy, setBusy] = useState(false);
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [topUpBusy, setTopUpBusy] = useState(false);
+  const [leaders, setLeaders] = useState<LeaderRow[]>([]);
+
+  useEffect(() => {
+    const loadLeaders = async () => {
+      const { data } = await supabase.rpc("get_mechanic_leaderboard");
+      setLeaders(((data as LeaderRow[]) ?? []).slice(0, 10));
+    };
+    void loadLeaders();
+  }, []);
 
   const addFunds = async () => {
     if (!user || !profile) return;
@@ -197,6 +215,52 @@ function MechanicDash() {
         <StatCard icon={CheckCircle2} label={t("jobs")} value={mine.length} />
       </div>
 
+
+      <section className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-md">
+        <div className="flex items-center gap-2">
+          <Trophy className="size-5 text-primary" />
+          <h2 className="font-display text-xl font-semibold">Top Mechanics Leaderboard</h2>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Ranked by average rating weighted against completed jobs.
+        </p>
+        {leaders.length === 0 ? (
+          <p className="mt-4 text-sm text-muted-foreground">No ranked mechanics yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {leaders.map((m, i) => (
+              <li
+                key={m.id}
+                className={`flex items-center gap-3 rounded-xl border p-3 ${
+                  m.id === user?.id ? "border-primary bg-primary/5" : "border-border bg-muted/30"
+                }`}
+              >
+                <span className="w-6 text-center font-display text-lg font-bold tabular-nums text-muted-foreground">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 truncate font-medium text-foreground">
+                    {m.full_name ?? "Mechanic"}
+                    {m.is_premium_badge && (
+                      <Award
+                        aria-label="Premium mechanic"
+                        className="size-4 shrink-0 text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.85)]"
+                      />
+                    )}
+                  </p>
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Star className="size-3 fill-current text-amber-500" />
+                    {Number(m.avg_rating).toFixed(1)} · {m.completed_jobs} jobs
+                  </p>
+                </div>
+                <span className="font-display text-lg font-bold tabular-nums">
+                  {Number(m.score).toFixed(2)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_minmax(0,360px)]">
         <section className="overflow-hidden rounded-2xl border border-border bg-card p-2 shadow-md">

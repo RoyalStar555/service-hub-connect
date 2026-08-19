@@ -5,6 +5,7 @@ import { Activity, BadgeIndianRupee, Image as ImageIcon, KeyRound, Loader2, Shie
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,6 +115,22 @@ function AdminDash() {
     }
   };
 
+
+  const togglePremium = async (p: Profile) => {
+    const next = !p.is_premium_badge;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_premium_badge: next })
+      .eq("id", p.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setProfiles((prev) =>
+      prev.map((row) => (row.id === p.id ? { ...row, is_premium_badge: next } : row)),
+    );
+    toast.success("Premium Status Updated");
+  };
 
   const rotateKey = useServerFn(updateMasterKey);
   const [currentKey, setCurrentKey] = useState("");
@@ -234,6 +251,7 @@ function AdminDash() {
               <TableHead>{t("phone")}</TableHead>
               <TableHead className="text-right">{t("balance")}</TableHead>
               <TableHead className="text-right">Status</TableHead>
+              <TableHead className="text-right">Premium Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -252,6 +270,22 @@ function AdminDash() {
                     <span className="text-success">{t("verified")}</span>
                   ) : (
                     <span className="text-muted-foreground">{t("unverified")}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  {p.role === "mechanic" ? (
+                    <div className="flex items-center justify-end gap-2">
+                      <Switch
+                        checked={p.is_premium_badge}
+                        onCheckedChange={() => void togglePremium(p)}
+                        aria-label={`Toggle premium status for ${p.full_name ?? "mechanic"}`}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {p.is_premium_badge ? "Premium" : "Standard"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
                   )}
                 </TableCell>
               </TableRow>
