@@ -40,6 +40,7 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          is_premium_badge: boolean
           is_verified: boolean
           phone: string | null
           role: string
@@ -49,6 +50,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          is_premium_badge?: boolean
           is_verified?: boolean
           phone?: string | null
           role?: string
@@ -58,6 +60,7 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          is_premium_badge?: boolean
           is_verified?: boolean
           phone?: string | null
           role?: string
@@ -74,10 +77,12 @@ export type Database = {
           exact_lat: number | null
           exact_lng: number | null
           fee_paid: number
+          feedback: string | null
           id: string
           issue_type: string
           mechanic_id: string | null
           media_url: string | null
+          rating: number | null
           status: string
           vehicle_model: string | null
           vehicle_type: string
@@ -90,10 +95,12 @@ export type Database = {
           exact_lat?: number | null
           exact_lng?: number | null
           fee_paid?: number
+          feedback?: string | null
           id?: string
           issue_type: string
           mechanic_id?: string | null
           media_url?: string | null
+          rating?: number | null
           status?: string
           vehicle_model?: string | null
           vehicle_type: string
@@ -106,10 +113,12 @@ export type Database = {
           exact_lat?: number | null
           exact_lng?: number | null
           fee_paid?: number
+          feedback?: string | null
           id?: string
           issue_type?: string
           mechanic_id?: string | null
           media_url?: string | null
+          rating?: number | null
           status?: string
           vehicle_model?: string | null
           vehicle_type?: string
@@ -136,7 +145,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      mechanic_leaderboard: {
+        Row: {
+          avg_rating: number | null
+          completed_jobs: number | null
+          full_name: string | null
+          id: string | null
+          is_premium_badge: boolean | null
+          score: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
