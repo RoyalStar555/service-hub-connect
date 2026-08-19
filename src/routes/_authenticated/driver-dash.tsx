@@ -1,6 +1,6 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Loader2, MapPin, Truck, Wallet, Wrench } from "lucide-react";
+import { CheckCircle2, Loader2, MapPin, Star, Truck, Wallet, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { RoleGate } from "@/components/RoleGate";
 import { RequestCard } from "@/components/RequestCard";
 import { StatCard } from "@/components/StatCard";
@@ -75,6 +83,12 @@ function DriverDash() {
   const [phase, setPhase] = useState<Phase>("form");
   const [activeId, setActiveId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [rateTarget, setRateTarget] = useState<ServiceRequest | null>(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [rateBusy, setRateBusy] = useState(false);
+  const [dismissed, setDismissed] = useState<string[]>([]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -119,7 +133,16 @@ function DriverDash() {
         .select("*")
         .eq("driver_id", user.id)
         .order("created_at", { ascending: false });
-      setRequests((data as ServiceRequest[]) ?? []);
+      const rows = (data as ServiceRequest[]) ?? [];
+      setRequests(rows);
+      setRateTarget((current) => {
+        if (current) return current;
+        return (
+          rows.find(
+            (r) => r.status === "completed" && r.rating == null && !dismissed.includes(r.id),
+          ) ?? null
+        );
+      });
     };
     void load();
 
@@ -135,7 +158,7 @@ function DriverDash() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, dismissed]);
 
   useEffect(() => {
     if (!activeId) return;
@@ -207,6 +230,40 @@ function DriverDash() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const submitRating = async () => {
+    if (!rateTarget || rating < 1) {
+      toast.error("Please select a star rating.");
+      return;
+    }
+    setRateBusy(true);
+    try {
+      const { error } = await supabase
+        .from("service_requests")
+        .update({ rating, feedback: feedback || null })
+        .eq("id", rateTarget.id);
+      if (error) throw error;
+      setRequests((prev) =>
+        prev.map((r) =>
+          r.id === rateTarget.id ? { ...r, rating, feedback: feedback || null } : r,
+        ),
+      );
+      closeRating();
+      toast.success("Thanks! Your rating has been submitted.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not submit your rating.");
+    } finally {
+      setRateBusy(false);
+    }
+  };
+
+  const closeRating = () => {
+    if (rateTarget) setDismissed((prev) => [...prev, rateTarget.id]);
+    setRateTarget(null);
+    setRating(0);
+    setHoverRating(0);
+    setFeedback("");
   };
 
   const reset = () => {
@@ -411,6 +468,61 @@ function DriverDash() {
           </section>
         </div>
       </div>
+
+      <Dialog open={!!rateTarget} onOpenChange={(open) => !open && !rateBusy && closeRating()}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Rate Your Mechanic</DialogTitle>
+            <DialogDescription>
+              {rateTarget?.vehicle_model ?? rateTarget?.vehicle_type} · {rateTarget?.issue_type}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-center gap-2 py-2">
+            {[1, 2, 3, 4, 5].map((star) => {
+              const filled = star <= (hoverRating || rating);
+              return (
+                <button
+                  key={star}
+                  type="button"
+                  aria-label={`${star} star${star > 1 ? "s" : ""}`}
+                  onClick={() => setRating(star)}
+                  onMouseEnter={() => setHoverRating(star)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  className="transition-transform hover:scale-110"
+                >
+                  <Star
+                    className={`size-9 ${
+                      filled ? "fill-primary text-primary" : "text-muted-foreground/40"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="feedback">Feedback (optional)</Label>
+            <Textarea
+              id="feedback"
+              className="min-h-24 rounded-xl"
+              placeholder="How was the service?"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" className="rounded-xl" onClick={closeRating} disabled={rateBusy}>
+              Later
+            </Button>
+            <Button className="rounded-xl font-semibold" onClick={submitRating} disabled={rateBusy}>
+              {rateBusy && <Loader2 className="mr-2 size-4 animate-spin" />}
+              Submit Rating
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
