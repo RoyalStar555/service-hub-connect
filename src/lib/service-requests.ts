@@ -12,6 +12,8 @@ export type ServiceRequest = {
   vehicle_model?: string | null;
   customer_note?: string | null;
   media_url?: string | null;
+  rating?: number | null;
+  feedback?: string | null;
   created_at: string;
 };
 
