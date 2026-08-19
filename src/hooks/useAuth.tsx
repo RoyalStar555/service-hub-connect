@@ -11,6 +11,7 @@ export type Profile = {
   phone: string | null;
   wallet_balance: number;
   is_verified: boolean;
+  is_premium_badge: boolean;
 };
 
 type AuthContextValue = {
@@ -36,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, role, full_name, phone, wallet_balance, is_verified")
+      .select("id, role, full_name, phone, wallet_balance, is_verified, is_premium_badge")
       .eq("id", userId)
       .maybeSingle();
     setProfile((data as Profile) ?? null);
