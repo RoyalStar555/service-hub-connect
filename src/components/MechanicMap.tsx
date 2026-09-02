@@ -1,7 +1,9 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { useState } from "react";
 import { Circle, MapContainer, Marker, TileLayer, Tooltip } from "react-leaflet";
 import type { ServiceRequest } from "@/lib/service-requests";
+import { Button } from "@/components/ui/button";
 
 export const MASK_OFFSET = 0.015;
 
@@ -23,16 +25,27 @@ export default function MechanicMap({
   unlocked: ServiceRequest[];
   onSelect: (request: ServiceRequest) => void;
 }) {
+  const [satellite, setSatellite] = useState(false);
+
   return (
-    <MapContainer
-      center={[center.lat, center.lng]}
-      zoom={11}
-      scrollWheelZoom
-      className="h-full w-full"
-    >
+    <div className="relative h-full w-full">
+      <MapContainer
+        center={[center.lat, center.lng]}
+        zoom={11}
+        scrollWheelZoom
+        className="h-full w-full"
+      >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution={
+          satellite
+            ? '&copy; Esri, Maxar, Earthstar Geographics'
+            : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }
+        url={
+          satellite
+            ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        }
       />
 
       {pending.map((r) =>
@@ -61,6 +74,18 @@ export default function MechanicMap({
           </Marker>
         ) : null,
       )}
-    </MapContainer>
+      </MapContainer>
+      <div className="absolute right-3 top-3 z-[1000]">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="bg-card/95 font-semibold shadow-md backdrop-blur-sm"
+          onClick={() => setSatellite((value) => !value)}
+        >
+          {satellite ? "Standard map" : "Satellite"}
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Globe, LogOut, ShieldCheck } from "lucide-react";
+import { Award, Globe, LogOut, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 
@@ -71,6 +71,12 @@ export function TopNav() {
               >
                 {profile?.role ? t(profile.role) : "—"}
               </Badge>
+              {profile?.is_premium_badge && profile.role === "mechanic" && (
+                <Award
+                  aria-label="Premium mechanic"
+                  className="size-4 text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.85)]"
+                />
+              )}
               {profile?.is_verified && <ShieldCheck className="size-3.5 text-success" />}
             </div>
           </div>

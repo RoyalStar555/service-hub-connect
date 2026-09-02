@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.get_mechanic_leaderboard() FROM anon, authenticated;

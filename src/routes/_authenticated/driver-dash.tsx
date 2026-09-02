@@ -89,6 +89,9 @@ function DriverDash() {
   const [feedback, setFeedback] = useState("");
   const [rateBusy, setRateBusy] = useState(false);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [mechanics, setMechanics] = useState<
+    Record<string, { full_name: string | null; phone: string | null; is_premium_badge: boolean }>
+  >({});
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -135,6 +138,19 @@ function DriverDash() {
         .order("created_at", { ascending: false });
       const rows = (data as ServiceRequest[]) ?? [];
       setRequests(rows);
+      const mechanicIds = [...new Set(rows.map((row) => row.mechanic_id).filter((id): id is string => Boolean(id)))];
+      if (mechanicIds.length > 0) {
+        const { data: mechanicRows } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone, is_premium_badge")
+          .in("id", mechanicIds);
+        setMechanics(
+          Object.fromEntries(
+            ((mechanicRows as Array<{ id: string; full_name: string | null; phone: string | null; is_premium_badge: boolean }>) ?? [])
+              .map(({ id, full_name, phone, is_premium_badge }) => [id, { full_name, phone, is_premium_badge }]),
+          ),
+        );
+      }
       setRateTarget((current) => {
         if (current) return current;
         return (
@@ -463,7 +479,13 @@ function DriverDash() {
                 {t("noRequests")}
               </p>
             ) : (
-              requests.map((r) => <RequestCard key={r.id} request={r} />)
+              requests.map((r) => (
+                <RequestCard
+                  key={r.id}
+                  request={r}
+                  mechanic={r.mechanic_id ? mechanics[r.mechanic_id] ?? null : null}
+                />
+              ))
             )}
           </section>
         </div>

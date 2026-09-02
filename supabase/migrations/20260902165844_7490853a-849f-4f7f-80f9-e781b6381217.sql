@@ -1,0 +1,1 @@
+CREATE POLICY "profiles_mechanic_assigned_driver_select" ON public.profiles FOR SELECT TO authenticated USING (EXISTS (SELECT 1 FROM public.service_requests sr WHERE sr.mechanic_id = auth.uid() AND sr.driver_id = profiles.id));
