@@ -480,7 +480,11 @@ function DriverDash() {
               </p>
             ) : (
               requests.map((r) => (
-                <RequestCard key={r.id} request={r} mechanic={r.mechanic_id ? mechanics[r.mechanic_id] : null} />
+                <RequestCard
+                  key={r.id}
+                  request={r}
+                  mechanic={r.mechanic_id ? mechanics[r.mechanic_id] ?? null : null}
+                />
               ))
             )}
           </section>

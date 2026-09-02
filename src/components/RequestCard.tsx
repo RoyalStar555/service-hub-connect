@@ -10,6 +10,7 @@ const statusStyles: Record<string, string> = {
 
 export function RequestCard({
   request,
+  mechanic,
   children,
 }: {
   request: ServiceRequest;

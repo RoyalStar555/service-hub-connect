@@ -1,6 +1,22 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { Award, CheckCircle2, CreditCard, Loader2, MapPin, Plus, Radio, Star, Trophy, Unlock, Wallet } from "lucide-react";
+import {
+  Award,
+  CheckCircle2,
+  CreditCard,
+  Image as ImageIcon,
+  Loader2,
+  MapPin,
+  MessageCircle,
+  Navigation,
+  Phone,
+  Plus,
+  Radio,
+  Star,
+  Trophy,
+  Unlock,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -67,6 +83,11 @@ function MechanicDash() {
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [topUpBusy, setTopUpBusy] = useState(false);
   const [leaders, setLeaders] = useState<LeaderRow[]>([]);
+  const [driver, setDriver] = useState<{
+    full_name: string | null;
+    phone: string | null;
+  } | null>(null);
+  const [mediaSrc, setMediaSrc] = useState<string | null>(null);
 
   useEffect(() => {
     const loadLeaders = async () => {
@@ -195,6 +216,42 @@ function MechanicDash() {
   };
 
   const detail = active ?? mine[0] ?? null;
+
+  useEffect(() => {
+    if (!detail?.driver_id) {
+      setDriver(null);
+      setMediaSrc(null);
+      return;
+    }
+
+    const loadDriverDetails = async () => {
+      const [{ data: driverRow }, mediaUrl] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name, phone")
+          .eq("id", detail.driver_id)
+          .maybeSingle(),
+        Promise.resolve(detail.media_url),
+      ]);
+      setDriver((driverRow as { full_name: string | null; phone: string | null } | null) ?? null);
+
+      if (!mediaUrl) {
+        setMediaSrc(null);
+        return;
+      }
+      const pathMatch = mediaUrl.match(/\/media\/([^?]+)/);
+      if (pathMatch?.[1]) {
+        const { data } = await supabase.storage
+          .from("media")
+          .createSignedUrl(decodeURIComponent(pathMatch[1]), 3600);
+        setMediaSrc(data?.signedUrl ?? mediaUrl);
+      } else {
+        setMediaSrc(mediaUrl);
+      }
+    };
+
+    void loadDriverDetails();
+  }, [detail?.driver_id, detail?.id, detail?.media_url]);
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -332,9 +389,72 @@ function MechanicDash() {
                 </p>
                 <p className="font-medium text-foreground">₹{detail.fee_paid}</p>
               </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Vehicle model
+                </p>
+                <p className="font-medium text-foreground">{detail.vehicle_model ?? "Not provided"}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Customer note
+                </p>
+                <p className="whitespace-pre-wrap text-foreground">{detail.customer_note ?? "No note provided."}</p>
+              </div>
+              {driver && (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Driver contact
+                  </p>
+                  <p className="font-medium text-foreground">{driver.full_name ?? "Driver"}</p>
+                  <p className="text-muted-foreground">{driver.phone ?? "Phone not provided"}</p>
+                </div>
+              )}
+              {mediaSrc ? (
+                <img
+                  src={mediaSrc}
+                  alt={`Breakdown media for ${detail.issue_type}`}
+                  className="max-h-48 w-full rounded-xl border border-border object-cover"
+                />
+              ) : detail.media_url ? (
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  <ImageIcon className="size-4" /> Loading breakdown media…
+                </div>
+              ) : null}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {detail.exact_lat != null && detail.exact_lng != null && (
+                  <Button asChild size="sm" className="font-semibold">
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${detail.exact_lat},${detail.exact_lng}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Navigation className="mr-1.5 size-3.5" /> Get Directions
+                    </a>
+                  </Button>
+                )}
+                {driver?.phone && (
+                  <Button asChild size="sm" variant="outline" className="font-semibold">
+                    <a href={`tel:${driver.phone}`}>
+                      <Phone className="mr-1.5 size-3.5" /> Call
+                    </a>
+                  </Button>
+                )}
+                {driver?.phone && (
+                  <Button asChild size="sm" variant="outline" className="font-semibold">
+                    <a
+                      href={`https://wa.me/91${driver.phone.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MessageCircle className="mr-1.5 size-3.5" /> WhatsApp
+                    </a>
+                  </Button>
+                )}
+              </div>
               <a
                 className="inline-block text-xs font-semibold text-primary underline"
-                href={`https://www.google.com/maps?q=${detail.exact_lat},${detail.exact_lng}`}
+                href={`https://www.google.com/maps/dir/?api=1&destination=${detail.exact_lat},${detail.exact_lng}`}
                 target="_blank"
                 rel="noreferrer"
               >

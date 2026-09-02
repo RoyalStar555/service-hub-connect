@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, BadgeIndianRupee, Image as ImageIcon, KeyRound, Loader2, ShieldCheck, Users, Wallet } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +98,46 @@ function AdminDash() {
   const treasury = requests
     .filter((r) => r.status === "accepted")
     .reduce((sum, r) => sum + Number(r.fee_paid ?? 0), 0);
+
+  const vehicleData = useMemo(() => {
+    const counts = new Map<string, number>();
+    requests.forEach((request) => {
+      const model = request.vehicle_model?.trim() || request.vehicle_type;
+      counts.set(model, (counts.get(model) ?? 0) + 1);
+    });
+    return [...counts.entries()]
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [requests]);
+
+  const revenueData = useMemo(() => {
+    const byDate = new Map<string, number>();
+    requests
+      .filter((request) => request.status === "accepted")
+      .forEach((request) => {
+        const date = new Date(request.created_at).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+        });
+        byDate.set(date, (byDate.get(date) ?? 0) + Number(request.fee_paid ?? 0));
+      });
+    return [...byDate.entries()].map(([date, revenue]) => ({ date, revenue })).slice(-7);
+  }, [requests]);
+
+  const telemetryInsight = useMemo(() => {
+    if (requests.length === 0) return "⚠️ No breakdown patterns are available yet.";
+    const model = vehicleData[0]?.name ?? "vehicle";
+    const locations = new Map<string, number>();
+    requests.forEach((request) => {
+      const location = request.breakdown_address?.split(",")[0]?.trim() || "the reported service area";
+      locations.set(location, (locations.get(location) ?? 0) + 1);
+    });
+    const location = [...locations.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "the reported service area";
+    return `⚠️ High volume of ${model} breakdowns near ${location}. Recommend premium mechanics stock parts.`;
+  }, [requests, vehicleData]);
+
+  const chartColors = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--destructive))", "hsl(var(--muted-foreground))"];
 
   const [media, setMedia] = useState<ServiceRequest | null>(null);
   const [mediaSrc, setMediaSrc] = useState<string | null>(null);
@@ -266,7 +307,9 @@ function AdminDash() {
                 <TableCell className="text-muted-foreground">{p.phone ?? "—"}</TableCell>
                 <TableCell className="text-right tabular-nums">₹{p.wallet_balance}</TableCell>
                 <TableCell className="text-right text-xs">
-                  {p.is_verified ? (
+                   {p.role === "mechanic" && p.is_premium_badge ? (
+                     <span className="font-bold text-success">Premium Verified</span>
+                   ) : p.is_verified ? (
                     <span className="text-success">{t("verified")}</span>
                   ) : (
                     <span className="text-muted-foreground">{t("unverified")}</span>
@@ -292,6 +335,64 @@ function AdminDash() {
             ))}
           </TableBody>
         </Table>
+      </section>
+
+      <section className="panel mt-10 rounded-2xl p-6 shadow-md sm:p-8">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-semibold">Platform Telemetry</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Live breakdown mix and unlock revenue signals.</p>
+          </div>
+          <Badge variant="outline" className="border-primary/30 text-primary">Real-time</Badge>
+        </div>
+        <div className="mt-6 grid gap-8 lg:grid-cols-2">
+          <div>
+            <h3 className="font-display text-base font-semibold">Breakdowns by Vehicle Model</h3>
+            {vehicleData.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">No vehicle data yet.</p>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={vehicleData} dataKey="value" nameKey="name" innerRadius={52} outerRadius={88} paddingAngle={3}>
+                      {vehicleData.map((entry, index) => <Cell key={entry.name} fill={chartColors[index % chartColors.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+              {vehicleData.map((entry, index) => (
+                <span key={entry.name} className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full" style={{ backgroundColor: chartColors[index % chartColors.length] }} />
+                  {entry.name} ({entry.value})
+                </span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold">Revenue Collected</h3>
+            {revenueData.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">No accepted jobs yet.</p>
+            ) : (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={revenueData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="revenue" name="Revenue" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mt-6 rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm font-medium text-foreground">
+          {telemetryInsight}
+        </div>
       </section>
 
       <section className="panel mt-10 overflow-x-auto">
