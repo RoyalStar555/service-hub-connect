@@ -1,4 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   Award,
