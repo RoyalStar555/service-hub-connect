@@ -1,4 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import {
   Award,
@@ -32,6 +33,7 @@ import { RoleGate } from "@/components/RoleGate";
 import { StatCard } from "@/components/StatCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getMechanicLeaderboard } from "@/lib/leaderboard.functions";
 import type { ServiceRequest } from "@/lib/service-requests";
 
 const MechanicMap = lazy(() => import("@/components/MechanicMap"));
@@ -88,14 +90,19 @@ function MechanicDash() {
     phone: string | null;
   } | null>(null);
   const [mediaSrc, setMediaSrc] = useState<string | null>(null);
+  const fetchLeaderboard = useServerFn(getMechanicLeaderboard);
 
   useEffect(() => {
     const loadLeaders = async () => {
-      const { data } = await supabase.rpc("get_mechanic_leaderboard");
-      setLeaders(((data as LeaderRow[]) ?? []).slice(0, 10));
+      try {
+        const data = await fetchLeaderboard();
+        setLeaders((data as LeaderRow[]).slice(0, 10));
+      } catch {
+        toast.error("Could not load the mechanics leaderboard.");
+      }
     };
     void loadLeaders();
-  }, []);
+  }, [fetchLeaderboard]);
 
   const addFunds = async () => {
     if (!user || !profile) return;
